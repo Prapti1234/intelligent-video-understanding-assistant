@@ -1,0 +1,37 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Runtime data created by the app
+workspace/
+chroma_db/
+
+# Media (never commit recordings)
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.flac
+*.ogg
+*.opus
+*.mp4
+*.mkv
+*.mov
+*.webm
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

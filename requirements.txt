@@ -1,0 +1,15 @@
+# Python 3.12 recommended (3.11-3.13 supported). FFmpeg must be installed separately.
+# On a CPU-only machine, install CPU PyTorch FIRST (see README), then: pip install -r requirements.txt
+
+openai-whisper==20250625            # local speech recognition (brings in torch, numba, tiktoken)
+yt-dlp[default,deno]>=2026.8.19     # YouTube audio download; 'deno' extra provides the JS runtime YouTube now needs
+langchain-core>=1.6,<2              # prompts, LCEL chains, Document, output parsers
+langchain-mistralai>=1.1,<2         # ChatMistralAI (summaries, extraction, answers)
+langchain-huggingface>=1.2,<2       # HuggingFaceEmbeddings (local embedding model)
+langchain-chroma>=1.1,<2            # Chroma vector store integration
+chromadb>=1.5,<2                    # local persistent vector database
+sentence-transformers>=5.2,<6       # backend for HuggingFaceEmbeddings (<6 required by langchain-huggingface)
+streamlit>=1.50,<2                  # web UI
+python-dotenv>=1.0                  # reads .env
+requests>=2.32                      # Sarvam AI REST calls
+pytest>=8                           # offline test suite
