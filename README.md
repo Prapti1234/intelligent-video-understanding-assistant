@@ -36,48 +36,47 @@ This app adds three layers on top of transcription:
 ```mermaid
 flowchart TB
     subgraph S1["1 · Input and audio"]
-        SRC["YouTube URL or upload"] --> VAL["Validate input<br/>stable recording ID"]
-        VAL -->|URL| YT["yt-dlp download"]
-        VAL -->|upload| UP["Save to temp workspace"]
-        YT --> FF["FFmpeg<br/>16 kHz mono WAV<br/>temp audio deleted later"]
+        SRC["YouTube URL<br/>or upload"] --> VAL["Validate input<br/>stable<br/>recording ID"]
+        VAL -->|URL| YT["yt-dlp<br/>download"]
+        VAL -->|upload| UP["Save to temp<br/>workspace"]
+        YT --> FF["FFmpeg<br/>16 kHz mono WAV<br/>temp audio<br/>deleted later"]
         UP --> FF
     end
 
     subgraph S2["2 · Transcription"]
         ENG{"Engine"}
-        ENG -->|local| WH["Whisper · 10-min pieces<br/>segment timestamps"]
-        ENG -->|cloud| SV["Sarvam API · 25-s pieces<br/>approx. timestamps"]
-        WH --> SEG["Timed segments<br/>start · end · text"]
+        ENG -->|local| WH["Whisper<br/>10-min pieces<br/>segment<br/>timestamps"]
+        ENG -->|cloud| SV["Sarvam API<br/>25-s pieces<br/>approx.<br/>timestamps"]
+        WH --> SEG["Timed segments<br/>start · end<br/>text"]
         SV --> SEG
     end
 
     FF --> ENG
 
     subgraph S3["3 · Analysis"]
-        MAP["Map: Mistral per section<br/>structured output + quotes"] --> RED["Reduce: title + summary"]
-        RED --> QC["Quote check vs transcript<br/>found: exact time<br/>missing: flagged"]
+        MAP["Map: Mistral<br/>per section<br/>structured<br/>output + quotes"] --> RED["Reduce:<br/>title + summary"]
+        RED --> QC["Quote check<br/>vs transcript<br/>found: exact time<br/>missing: flagged"]
     end
 
     subgraph S4["4 · Indexing"]
-        CH["Timestamped chunks<br/>~1,000 chars + overlap"] --> EMB["MiniLM embeddings"]
-        EMB --> DB[("Chroma collection<br/>per recording<br/>re-index replaces")]
+        CH["Timestamped<br/>chunks<br/>~1,000 chars<br/>+ overlap"] --> EMB["MiniLM<br/>embeddings"]
+        EMB --> DB[("Chroma<br/>collection<br/>per recording<br/>re-index replaces")]
+    end
+
+    subgraph S5["5 · Grounded Q&A"]
+        Q["User question"] --> RET["Top-4 passages<br/>+ scores<br/>this recording<br/>only"]
+        RET --> GEN["Mistral: answer<br/>from passages<br/>or 'not found'"]
     end
 
     SEG --> MAP
     SEG --> CH
-
-    subgraph S5["5 · Grounded Q&A"]
-        Q["User question"] --> RET["Top-4 passages + scores<br/>this recording only"]
-        RET --> GEN["Mistral: answer from<br/>passages or 'not found'"]
-    end
-
-    DB --> RET
+    RET <--> DB
 
     subgraph S6["6 · Streamlit UI"]
-        OUT["Report tabs<br/>chat + timestamped evidence<br/>.md report · .txt transcript"]
+        OUT["Report tabs<br/>chat + timestamped<br/>evidence<br/>.md report<br/>.txt transcript"]
     end
 
-    QC ----> OUT
+    QC --> OUT
     GEN --> OUT
 
     classDef remote fill:#fdf0dc,stroke:#c98a1b,color:#1f1f1f
