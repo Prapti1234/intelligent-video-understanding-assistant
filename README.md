@@ -33,31 +33,60 @@ This app adds three layers on top of transcription:
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    A[YouTube URL / upload] --> B[Validate + recording ID]
-    B --> C[yt-dlp download]
-    B --> D[Save upload]
-    C --> E[FFmpeg: 16 kHz mono WAV]
-    D --> E
-    E --> F{Engine}
-    F -->|local| G[Whisper, 10-min pieces]
-    F -->|cloud| H[Sarvam API, 25-s pieces]
-    G --> I[Timed segments]
-    H --> I
-    I --> J[Map: Mistral per section<br/>Reduce: title + summary]
-    J --> K[Quote check + timestamps]
-    I --> L[Timestamped chunks]
-    L --> M[MiniLM embeddings]
-    M --> N[(Chroma collection<br/>rec-hash per recording)]
-    Q[Question] --> N
-    N --> O[Top-4 passages + scores]
-    O --> P[Mistral: answer only from passages]
-    K --> R[Streamlit UI + exports]
-    P --> R
-```
+flowchart TB
+    subgraph S1["1 · Input and audio"]
+        SRC["YouTube URL or upload"] --> VAL["Validate input<br/>stable recording ID"]
+        VAL -->|URL| YT["yt-dlp download"]
+        VAL -->|upload| UP["Save to temp workspace"]
+        YT --> FF["FFmpeg<br/>16 kHz mono WAV<br/>temp audio deleted later"]
+        UP --> FF
+    end
 
-Code layout: `pipeline.py` holds all processing (no UI code); `app.py` is the Streamlit interface; `test_pipeline.py` is the offline test suite.
+    subgraph S2["2 · Transcription"]
+        ENG{"Engine"}
+        ENG -->|local| WH["Whisper · 10-min pieces<br/>segment timestamps"]
+        ENG -->|cloud| SV["Sarvam API · 25-s pieces<br/>approx. timestamps"]
+        WH --> SEG["Timed segments<br/>start · end · text"]
+        SV --> SEG
+    end
+
+    FF --> ENG
+
+    subgraph S3["3 · Analysis"]
+        MAP["Map: Mistral per section<br/>structured output + quotes"] --> RED["Reduce: title + summary"]
+        RED --> QC["Quote check vs transcript<br/>found: exact time<br/>missing: flagged"]
+    end
+
+    subgraph S4["4 · Indexing"]
+        CH["Timestamped chunks<br/>~1,000 chars + overlap"] --> EMB["MiniLM embeddings"]
+        EMB --> DB[("Chroma collection<br/>per recording<br/>re-index replaces")]
+    end
+
+    SEG --> MAP
+    SEG --> CH
+
+    subgraph S5["5 · Grounded Q&A"]
+        Q["User question"] --> RET["Top-4 passages + scores<br/>this recording only"]
+        RET --> GEN["Mistral: answer from<br/>passages or 'not found'"]
+    end
+
+    DB --> RET
+
+    subgraph S6["6 · Streamlit UI"]
+        OUT["Report tabs<br/>chat + timestamped evidence<br/>.md report · .txt transcript"]
+    end
+
+    QC ----> OUT
+    GEN --> OUT
+
+    classDef remote fill:#fdf0dc,stroke:#c98a1b,color:#1f1f1f
+    classDef store fill:#e3eefb,stroke:#4a7cc2,color:#1f1f1f
+    class SV,MAP,RED,GEN remote
+    class DB store
+
+Orange boxes represent remote API calls, where data is transmitted to external services; the blue cylinder represents the local vector store; all other components run locally. Remote API calls use retries with backoff to handle rate-limit and server errors (HTTP 429/5xx).
+
+**Code layout:** `pipeline.py` contains the processing logic; `app.py` implements the Streamlit interface; `test_pipeline.py` contains the offline test suite.
 
 ## How it works
 
