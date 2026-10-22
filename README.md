@@ -33,6 +33,7 @@ This app adds three layers on top of transcription:
 
 ## Architecture
 
+```mermaid
 flowchart TB
     subgraph S1["1 · Input and audio"]
         SRC["YouTube URL or upload"] --> VAL["Validate input<br/>stable recording ID"]
@@ -83,10 +84,11 @@ flowchart TB
     classDef store fill:#e3eefb,stroke:#4a7cc2,color:#1f1f1f
     class SV,MAP,RED,GEN remote
     class DB store
+```
 
-Orange boxes represent remote API calls, where data is transmitted to external services; the blue cylinder represents the local vector store; all other components run locally. Remote API calls use retries with backoff to handle rate-limit and server errors (HTTP 429/5xx).
+Orange boxes are remote API calls (data leaves your computer); the blue cylinder is the local vector store; everything else runs locally. Remote calls are retried with backoff on rate-limit and server errors (HTTP 429/5xx).
 
-**Code layout:** `pipeline.py` contains the processing logic; `app.py` implements the Streamlit interface; `test_pipeline.py` contains the offline test suite.
+Code layout: `pipeline.py` holds all processing (no UI code); `app.py` is the Streamlit interface; `test_pipeline.py` is the offline test suite.
 
 ## How it works
 
