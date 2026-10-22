@@ -35,56 +35,69 @@ This app adds three layers on top of transcription:
 
 ```mermaid
 flowchart TB
-    subgraph S1["1 · Input and audio"]
+    subgraph S1[" "]
+        H1["1 · Input and audio"]
         SRC["YouTube URL<br/>or upload"] --> VAL["Validate input<br/>stable<br/>recording ID"]
         VAL -->|URL| YT["yt-dlp<br/>download"]
         VAL -->|upload| UP["Save to temp<br/>workspace"]
         YT --> FF["FFmpeg<br/>16 kHz mono WAV<br/>temp audio<br/>deleted later"]
         UP --> FF
     end
+    H1 ~~~ SRC
 
-    subgraph S2["2 · Transcription"]
+    subgraph S2[" "]
+        H2["2 · Transcription"]
         ENG{"Engine"}
         ENG -->|local| WH["Whisper<br/>10-min pieces<br/>segment<br/>timestamps"]
         ENG -->|cloud| SV["Sarvam API<br/>25-s pieces<br/>approx.<br/>timestamps"]
         WH --> SEG["Timed segments<br/>start · end<br/>text"]
         SV --> SEG
     end
+    H2 ~~~ ENG
 
-    FF --> ENG
+    FF --> H2
 
-    subgraph S3["3 · Analysis"]
+    subgraph S3[" "]
+        H3["3 · Analysis"]
         MAP["Map: Mistral<br/>per section<br/>structured<br/>output + quotes"] --> RED["Reduce:<br/>title + summary"]
         RED --> QC["Quote check<br/>vs transcript<br/>found: exact time<br/>missing: flagged"]
     end
+    H3 ~~~ MAP
 
-    subgraph S4["4 · Indexing"]
+    subgraph S4[" "]
+        H4["4 · Indexing"]
         CH["Timestamped<br/>chunks<br/>~1,000 chars<br/>+ overlap"] --> EMB["MiniLM<br/>embeddings"]
         EMB --> DB[("Chroma<br/>collection<br/>per recording<br/>re-index replaces")]
     end
+    H4 ~~~ CH
 
-    subgraph S5["5 · Grounded Q&A"]
+    subgraph S5[" "]
+        H5["5 · Grounded Q&A"]
         Q["User question"] --> RET["Top-4 passages<br/>+ scores<br/>this recording<br/>only"]
         RET --> GEN["Mistral: answer<br/>from passages<br/>or 'not found'"]
     end
+    H5 ~~~ Q
 
-    SEG --> MAP
-    SEG --> CH
+    SEG --> H3
+    SEG --> H4
     RET <--> DB
 
-    subgraph S6["6 · Streamlit UI"]
+    subgraph S6[" "]
+        H6["6 · Streamlit UI"]
         OUT["Report tabs<br/>chat + timestamped<br/>evidence<br/>.md report<br/>.txt transcript"]
     end
+    H6 ~~~ OUT
 
-    QC --> OUT
-    GEN --> OUT
+    QC --> H6
+    GEN --> H6
 
+    classDef stage fill:none,stroke:none,font-weight:bold
     classDef remote fill:#fdf0dc,stroke:#c98a1b,color:#1f1f1f
     classDef store fill:#e3eefb,stroke:#4a7cc2,color:#1f1f1f
+    class H1,H2,H3,H4,H5,H6 stage
     class SV,MAP,RED,GEN remote
     class DB store
 ```
-
 Orange boxes are remote API calls (data leaves your computer); the blue cylinder is the local vector store; everything else runs locally. Remote calls are retried with backoff on rate-limit and server errors (HTTP 429/5xx).
 
 Code layout: `pipeline.py` holds all processing (no UI code); `app.py` is the Streamlit interface; `test_pipeline.py` is the offline test suite.
