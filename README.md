@@ -1,12 +1,12 @@
 # Intelligent Video Understanding AI Assistant
 
-Turn a YouTube video, lecture, podcast or meeting recording into a **timestamped transcript**, a **summary**, extracted **decisions, action items and open questions**, and a **chat that answers from the recording and shows its evidence**.
+Turn a YouTube video, lecture, podcast or meeting recording into a **timestamped transcript**, a **summary**, extracted **decisions, action items and open questions** and a **chat that answers from the recording and shows its evidence**.
 
 Built with Python, OpenAI Whisper (local), Sarvam AI (optional, Hindi/Hinglish), Mistral AI via LangChain, Hugging Face embeddings, ChromaDB and Streamlit.
 
-## Why this exists
+## Motivation and Approach 
 
-Long recordings hide information. A two-hour lecture is 15-20k words with no structure; the one decision you need from last week's meeting means re-watching it. A transcript alone does not fix this: it is still a wall of text.
+Long recordings hide information. A two-hour lecture is 15-20k words with no structure; the one decision that is needed from last week's meeting means re-watching it. A transcript alone does not fix this: it is still a wall of text.
 
 This app adds three layers on top of transcription:
 
@@ -98,7 +98,7 @@ flowchart TB
     class SV,MAP,RED,GEN remote
     class DB store
 ```
-Orange boxes are remote API calls (data leaves your computer); the blue cylinder is the local vector store; everything else runs locally. Remote calls are retried with backoff on rate-limit and server errors (HTTP 429/5xx).
+Orange boxes are remote API calls (data leaves the local computer); the blue cylinder is the local vector store; everything else runs locally. Remote calls are retried with backoff on rate-limit and server errors (HTTP 429/5xx).
 
 Code layout: `pipeline.py` holds all processing (no UI code); `app.py` is the Streamlit interface; `test_pipeline.py` is the offline test suite.
 
@@ -127,7 +127,7 @@ A "quote found" mark means the supporting words appear verbatim in the transcrip
 ## Installation (Windows, PowerShell)
 
 ```powershell
-# 1. Tools (skip what you already have), then open a NEW terminal
+# 1. Tools (skip any that are already installed), then open a NEW terminal
 winget install Python.Python.3.12
 winget install Gyan.FFmpeg
 ffmpeg -version
@@ -185,18 +185,22 @@ The first run downloads the Whisper weights (~460 MB for `small`) and the embedd
 
 **Manage the index.** Re-analysing the same video or file rebuilds its index instead of duplicating it. *Delete this recording's index* removes only that recording's collection from `chroma_db/`.
 
+## Testing
+
+`pytest -q` runs 45 offline tests covering input validation, audio splitting and timestamp offsets, transcription wiring, retries and error messages, analysis merging and quote checking, chunking, retrieval isolation, duplicate prevention, index deletion, answering, exports, temporary-file cleanup and the Streamlit UI.
+
 ## Privacy and costs
 
-| Component | Where it runs | Data leaving your computer |
+| Component | Where it runs | Data leaving the local computer |
 |---|---|---|
-| FFmpeg, Whisper, embeddings, ChromaDB | your computer | none (model weights are downloaded once) |
-| yt-dlp | your computer | requests to YouTube |
-| Mistral | Mistral's servers | transcript text and your questions |
-| Sarvam (optional mode) | Sarvam's servers | your audio |
+| FFmpeg, Whisper, embeddings, ChromaDB | local computer | none (model weights are downloaded once) |
+| yt-dlp | local computer | requests to YouTube |
+| Mistral | Mistral's servers | transcript text and user questions |
+| Sarvam (optional mode) | Sarvam's servers | the recording's audio |
 
 - **External services:** Transcript text and questions are sent to Mistral for analysis and chat. In Sarvam mode, audio is sent to Sarvam for transcription. Review the providers' data-handling policies before processing confidential recordings.
 - **API costs:** Usage is subject to the providers' current pricing, quotas, and terms. Check their official documentation before use.
-- Downloaded audio is deleted after transcription. Transcript chunks stay in `chroma_db/` until you delete the index.
+- Downloaded audio is deleted after transcription. Transcript chunks stay in `chroma_db/` until the index is deleted.
 
 ## Limitations
 
@@ -214,14 +218,13 @@ The first run downloads the Whisper weights (~460 MB for `small`) and the embedd
 | YouTube download fails | `pip install -U "yt-dlp[default,deno]"`. Private, age-restricted or region-locked videos cannot be downloaded. |
 | "rejected the API key" | Check the key in `.env`, then restart Streamlit. |
 | "rate limit reached" | Free-tier limit. Wait a minute; the app already retries with backoff. |
-| Translate mode returns the original language | You are using `turbo`; set `WHISPER_MODEL=small` or larger. |
+| Translate mode returns the original language | The `turbo` model is selected; set `WHISPER_MODEL=small` or larger. |
 | Very slow transcription | Use `WHISPER_MODEL=base` or `tiny`, or a GPU build of PyTorch. |
 | Poor answers on a Hindi transcript | Set a multilingual `EMBEDDING_MODEL` and re-analyse. |
 
 ## How retrieval quality can be evaluated
 
 Retrieval and generation fail differently, so check them separately. Write about 10 questions about a recording and note the timestamp where each answer occurs. **Retrieval** is working if the correct time range appears among the evidence passages (hit@4). **Generation** is working if, given correct evidence, the answer is faithful to it and cites it. A wrong answer with the right evidence is a generation problem; a wrong answer without it is a retrieval problem. The offline tests check retrieval logic with a deterministic embedding model; they do not measure the real model's quality.
-
 
 ## Engineering Contributions
 
