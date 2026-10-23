@@ -116,7 +116,7 @@ def load_settings() -> Settings:
         mistral_api_key=_env("MISTRAL_API_KEY"),
         sarvam_api_key=_env("SARVAM_API_KEY"),
         whisper_model=_env("WHISPER_MODEL", "small"),
-        mistral_model=_env("MISTRAL_MODEL", "mistral-small-latest"),
+        mistral_model=_env("MISTRAL_MODEL", "ministral-3b-latest"),
         sarvam_model=_env("SARVAM_MODEL", "saaras:v4"),
         embedding_model=_env("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
     )
